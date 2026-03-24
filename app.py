@@ -87,7 +87,7 @@ if archivo is not None:
                 temperature=0.3,
                 )
         except Exception as e:
-    st.error(f"Error: {e}")
+            st.error(f"Error: {e}")
 
             # ✅ GUARDAR EN SESSION STATE
             st.session_state.informe = respuesta.choices[0].message.content
