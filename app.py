@@ -22,7 +22,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 #===CONFIGURAR API KEY==============================
-api_key = st.secrets["GROQ_API_KEY"]
+api_key = 'sgsk_sF4Yy5I1IecHpXvCgFZjWGdyb3FYwYN3R84OB5OG3uLViRV6aZoA'
 cliente = Groq(api_key=api_key)
 
 #===INICIALIZAR SESSION STATE=======================
