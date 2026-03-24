@@ -14,6 +14,7 @@ cargar_estilos()
 
 #===CONFIGURAR PAGINA ==============================
 st.set_page_config(layout='wide')
+
 st.markdown("""
 <div class="dashboard-header">
     <h1>✈️ Centro de Control Operacional</h1>
@@ -22,10 +23,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 #===CONFIGURAR API KEY==============================
-api_key = st.secrets["GROQ_API_KEY"]
+api_key = st.secrets.get("GROQ_API_KEY")
+
+if not api_key:
+    st.error("⚠️ Falta configurar GROQ_API_KEY en Secrets")
+    st.stop()
+
 cliente = Groq(api_key=api_key)
 
-#===INICIALIZAR SESSION STATE=======================
+#===SESSION STATE===================================
 if "informe" not in st.session_state:
     st.session_state.informe = ""
 
@@ -35,20 +41,22 @@ archivo = st.file_uploader('Cargar archivo Excel (.xlsx)', type=['xlsx'])
 if archivo is not None:
     df = pd.read_excel(archivo)
 
-    #===GENERAR RESUMEN=================================
     filas, columnas = df.shape
+
+    # KPI CARDS
     st.markdown(f"""
-<div style="display:flex; gap:20px; margin-bottom:20px;">
-    <div class="kpi-card">
-        <div class="kpi-title">Filas</div>
-        <div class="kpi-value">{filas}</div>
+    <div style="display:flex; gap:20px; margin-bottom:20px;">
+        <div class="kpi-card">
+            <div class="kpi-title">Filas</div>
+            <div class="kpi-value">{filas}</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title">Columnas</div>
+            <div class="kpi-value">{columnas}</div>
+        </div>
     </div>
-    <div class="kpi-card">
-        <div class="kpi-title">Columnas</div>
-        <div class="kpi-value">{columnas}</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
     nums = df.select_dtypes(include='number').columns.tolist()
     cats = df.select_dtypes(include='object').columns.tolist()
 
@@ -71,39 +79,30 @@ if archivo is not None:
         st.text(texto_resumen)
 
     #===GENERAR INFORME=================================
-if st.button('Generar Informe'):
-    st.write("⚡ Botón presionado")
+    if st.button('Generar Informe'):
+        with st.spinner('Generando informe...'):
+            try:
+                prompt = f"""
+                Actúa como un gerente responsable de la operación y la gestión del riesgo.
 
-    with st.spinner('Generando informe...'):
-        try:
-            prompt = f'''
-            Actúa como un gerente responsable de la operación y la gestión del riesgo.
+                Analiza:
+                {texto_resumen}
+                """
 
-            Analiza:
-            {texto_resumen}
-            '''
+                respuesta = cliente.chat.completions.create(
+                    model='llama-3.3-70b-versatile',
+                    messages=[{'role': 'user', 'content': prompt}],
+                    temperature=0.3,
+                )
 
-            respuesta = cliente.chat.completions.create(
-                model='llama-3.3-70b-versatile',  # ✅ MODELO CORRECTO
-                messages=[{'role': 'user', 'content': prompt}],
-                temperature=0.3,
-            )
+                st.session_state.informe = respuesta.choices[0].message.content
 
-            informe = respuesta.choices[0].message.content
+                st.success("✅ Informe generado")
 
-            # ✅ SOLO SI TODO SALE BIEN
-            st.session_state.informe = informe
+            except Exception as e:
+                st.error(f"❌ Error: {e}")
 
-            st.success("✅ Informe generado")
-            st.markdown(informe)
-
-        except Exception as e:
-            st.error(f"❌ Error real: {e}")
-
-            # ✅ GUARDAR EN SESSION STATE
-            st.session_state.informe = respuesta.choices[0].message.content
-
-    #===MOSTRAR INFORME SI EXISTE=======================
+    #===MOSTRAR INFORME (SOLO UNA VEZ)===================
     if st.session_state.informe != "":
         st.subheader("📊 Informe generado")
         st.markdown(f"""
@@ -117,13 +116,14 @@ if st.button('Generar Informe'):
     pregunta = st.text_input('Pregunta sobre las estadísticas')
 
     if st.button('Consultar'):
-        if pregunta:
-
-            if st.session_state.informe == "":
-                st.warning("Primero debes generar el informe")
-            else:
-                with st.spinner('Consultando...'):
-                    prompt_chat = f'''
+        if not pregunta:
+            st.warning("Escribe una pregunta")
+        elif st.session_state.informe == "":
+            st.warning("Primero debes generar el informe")
+        else:
+            with st.spinner('Consultando...'):
+                try:
+                    prompt_chat = f"""
                     Actúa como un gerente responsable de la operación y la gestión del riesgo.
 
                     Datos:
@@ -133,7 +133,7 @@ if st.button('Generar Informe'):
                     {st.session_state.informe}
 
                     Pregunta: {pregunta}
-                    '''
+                    """
 
                     respuesta = cliente.chat.completions.create(
                         model='llama-3.3-70b-versatile',
@@ -141,5 +141,7 @@ if st.button('Generar Informe'):
                         temperature=0.3,
                     )
 
-                    respuesta_chat = respuesta.choices[0].message.content
-                    st.markdown(respuesta_chat)
+                    st.markdown(respuesta.choices[0].message.content)
+
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
