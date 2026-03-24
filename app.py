@@ -72,7 +72,7 @@ if archivo is not None:
 
     #===GENERAR INFORME=================================
 if st.button('Generar Informe'):
-    st.write("⚡ Botón presionado")  # 👈 DEBUG
+    st.write("⚡ Botón presionado")
 
     with st.spinner('Generando informe...'):
         try:
@@ -84,17 +84,18 @@ if st.button('Generar Informe'):
             '''
 
             respuesta = cliente.chat.completions.create(
-                model='llama3-70b-8192',  # 👈 modelo más estable
+                model='llama-3.3-70b-versatile',  # ✅ MODELO CORRECTO
                 messages=[{'role': 'user', 'content': prompt}],
                 temperature=0.3,
             )
 
             informe = respuesta.choices[0].message.content
 
+            # ✅ SOLO SI TODO SALE BIEN
             st.session_state.informe = informe
 
             st.success("✅ Informe generado")
-            st.write(informe)  # 👈 DEBUG VISUAL
+            st.markdown(informe)
 
         except Exception as e:
             st.error(f"❌ Error real: {e}")
