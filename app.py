@@ -71,8 +71,11 @@ if archivo is not None:
         st.text(texto_resumen)
 
     #===GENERAR INFORME=================================
-    if st.button('Generar Informe'):
-        with st.spinner('Generando informe...'):
+if st.button('Generar Informe'):
+    st.write("⚡ Botón presionado")  # 👈 DEBUG
+
+    with st.spinner('Generando informe...'):
+        try:
             prompt = f'''
             Actúa como un gerente responsable de la operación y la gestión del riesgo.
 
@@ -80,14 +83,21 @@ if archivo is not None:
             {texto_resumen}
             '''
 
-        try:
             respuesta = cliente.chat.completions.create(
-                model='llama-3.3-70b-versatile',
+                model='llama3-70b-8192',  # 👈 modelo más estable
                 messages=[{'role': 'user', 'content': prompt}],
                 temperature=0.3,
-                )
+            )
+
+            informe = respuesta.choices[0].message.content
+
+            st.session_state.informe = informe
+
+            st.success("✅ Informe generado")
+            st.write(informe)  # 👈 DEBUG VISUAL
+
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"❌ Error real: {e}")
 
             # ✅ GUARDAR EN SESSION STATE
             st.session_state.informe = respuesta.choices[0].message.content
