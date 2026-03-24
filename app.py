@@ -80,11 +80,14 @@ if archivo is not None:
             {texto_resumen}
             '''
 
+        try:
             respuesta = cliente.chat.completions.create(
                 model='llama-3.3-70b-versatile',
                 messages=[{'role': 'user', 'content': prompt}],
                 temperature=0.3,
-            )
+                )
+        except Exception as e:
+    st.error(f"Error: {e}")
 
             # ✅ GUARDAR EN SESSION STATE
             st.session_state.informe = respuesta.choices[0].message.content
